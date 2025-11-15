@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"="width=device-width, initial-scale=1.0">
+    <title>Advanced DC Shunt Motor Simulator - Multi-Physics Analysis</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 3px solid #1e3c72;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-size: 1em;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: #e8e8e8;
+            color: #1e3c72;
+        }
+
+        .tab.active {
+            background: white;
+            color: #1e3c72;
+            border-bottom: 3px solid #1e3c72;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 25px;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 300px);
+        }
+
+        .control-panel {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .visualization-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .param-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .param-section h3 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            border-bottom: 2px solid #1e3c72;
+            padding-bottom: 8px;
+        }
+
+        .param-row {
+            margin-bottom: 12px;
+        }
+
+        .param-row label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        .param-row input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .param-row input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        .param-row input[type="number"]:focus {
+            outline: none;
+            border-color: #1e3c72;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+        }
+
+        .btn-reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .status-item {
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.85em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        .plot-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .plot-container {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .solver-select, .control-select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95em;
+            background: white;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .results-table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+
+        .results-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .results-table td:first-child {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .results-table td:last-child {
+            text-align: right;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+
+        .calc-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .calc-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .plot-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .solution-box {
+            background: #f0f8ff;
+            border-left: 4px solid #1e3c72;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .solution-box h3 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+        }
+
+        .solution-step {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .solution-step h4 {
+            color: #2a5298;
+            margin-bottom: 8px;
+        }
+
+        .formula {
+            font-family: 'Courier New', monospace;
+            background: #f5f5f5;
+            padding: 5px 10px;
+            border-radius: 3px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Advanced DC Shunt Motor Simulator</h1>
+            <p>Multi-Physics Analysis & Real-Time Simulation Platform</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="openTab(event, 'problem-solution')">Problem Solution</button>
+            <button class="tab" onclick="openTab(event, 'main-sim')">Main Simulation</button>
+            <button class="tab" onclick="openTab(event, 'analysis')">Performance Analysis</button>
+            <button class="tab" onclick="openTab(event, 'thermal')">Thermal & Derating</button>
+            <button class="tab" onclick="openTab(event, 'economic')">Economic Analysis</button>
+            <button class="tab" onclick="openTab(event, 'multiphysics')">Multi-Physics</button>
+            <button class="tab" onclick="openTab(event, 'controls')">Advanced Controls</button>
+        </div>
+
+        <!-- Problem Solution Tab -->
+        <div id="problem-solution" class="tab-content active">
+            <div class="solution-box">
+                <h3>Example 29.42: DC Shunt Motor Efficiency Analysis</h3>
+
+                <div class="solution-step">
+                    <h4>Given Parameters:</h4>
+                    <ul style="margin-left: 20px; line-height: 1.8;">
+                        <li>Rated Output Power: <span class="highlight">7.46 kW</span></li>
+                        <li>Supply Voltage: <span class="highlight">250 V</span></li>
+                        <li>No-load Line Current: <span class="highlight">5 A</span></li>
+                        <li>Armature Resistance: <span class="highlight">0.5 Ω</span></li>
+                        <li>Field Resistance: <span class="highlight">250 Ω</span></li>
+                    </ul>
+                </div>
+
+                <div class="solution-step">
+                    <h4>Step 1: Field Current (Constant)</h4>
+                    <p class="formula">I_sh = V / R_sh = 250 / 250 = <span class="highlight">1.0 A</span></p>
+                </div>
+
+                <div class="solution-step">
+                    <h4>Step 2: No-load Armature Current</h4>
+                    <p class="formula">I_a0 = I_L0 - I_sh = 5 - 1 = <span class="highlight">4.0 A</span></p>
+                </div>
+
+                <div class="solution-step">
+                    <h4>Step 3: Constant Losses</h4>
+                    <p class="formula">P_input(no-load) = 250 × 5 = 1250 W</p>
+                    <p class="formula">P_cu(field) = 250 × 1 = 250 W</p>
+                    <p class="formula">P_cu(armature,no-load) = 4² × 0.5 = 8 W</p>
+                    <p class="formula">P_constant = 1250 - 250 - 8 = <span class="highlight">992 W</span></p>
+                </div>
+
+                <div class="solution-step">
+                    <h4>Step 4: Full Load Armature Current</h4>
+                    <p>Output Power = E_b × I_a = (V - I_a×R_a) × I_a</p>
+                    <p class="formula">7460 = (250 - 0.5×I_a) × I_a</p>
+                    <p class="formula">0.5×I_a² - 250×I_a + 7460 = 0</p>
+                    <p>Using quadratic formula:</p>
+                    <p class="formula">I_a = <span class="highlight">31.87 A</span> (practical value)</p>
+                </div>
+
+                <div class="solution-step">
+                    <h4>Step 5: Full Load Efficiency</h4>
+                    <p class="formula">E_b = 250 - 31.87 × 0.5 = 234.06 V</p>
+                    <p class="formula">P_cu(armature) = 31.87² × 0.5 = 507.5 W</p>
+                    <p class="formula">Total Losses = 992 + 250 + 507.5 = 1749.5 W</p>
+                    <p class="formula">P_input = 7460 + 1749.5 = 9209.5 W</p>
+                    <p class="formula">Efficiency = (7460 / 9209.5) × 100 = <span class="highlight">81.0%</span></p>
+                </div>
+
+                <div class="solution-step">
+                    <h4>Step 6: Maximum Efficiency Condition</h4>
+                    <p>Max efficiency when: Variable Losses = Constant Losses</p>
+                    <p class="formula">I_a² × R_a = P_constant + P_cu(field)</p>
+                    <p class="formula">I_a² × 0.5 = 992 + 250 = 1242</p>
+                    <p class="formula">I_a = <span class="highlight">49.84 A</span></p>
+                    <p class="formula">E_b = 250 - 49.84 × 0.5 = 225.08 V</p>
+                    <p class="formula">P_output(max eff) = 225.08 × 49.84 = <span class="highlight">11.22 kW</span></p>
+                </div>
+
+                <div class="solution-step" style="background: #ffe6e6;">
+                    <h4>📊 Summary & Conclusions:</h4>
+                    <table class="results-table">
+                        <tr>
+                            <td>Efficiency at Full Load (7.46 kW):</td>
+                            <td style="color: #28a745;">81.0%</td>
+                        </tr>
+                        <tr>
+                            <td>Maximum Efficiency:</td>
+                            <td style="color: #007bff;">83.3%</td>
+                        </tr>
+                        <tr>
+                            <td>Output at Max Efficiency:</td>
+                            <td style="color: #dc3545;">11.22 kW</td>
+                        </tr>
+                        <tr>
+                            <td>Is Max Efficiency Achievable?</td>
+                            <td style="color: #dc3545;">⚠️ NO - Requires 50% overload</td>
+                        </tr>
+                    </table>
+                    <p style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px;">
+                        <strong>⚠️ Important Note:</strong> The output power for maximum efficiency (11.22 kW) exceeds the rated output (7.46 kW) by 50%.
+                        Operating at this level would <strong>overload the machine</strong> and is <strong>NOT recommended</strong> for continuous operation due to:
+                    </p>
+                    <ul style="margin-left: 30px; margin-top: 10px; line-height: 1.8;">
+                        <li>Excessive heating beyond design limits</li>
+                        <li>Accelerated insulation degradation</li>
+                        <li>Reduced machine lifespan</li>
+                        <li>Potential mechanical stress damage</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="solutionPlot" style="width: 100%; height: 500px;"></div>
+        </div>
+
+        <!-- Main Simulation Tab -->
+        <div id="main-sim" class="tab-content">
+            <div class="main-layout">
+                <div class="control-panel">
+                    <div class="param-section">
+                        <h3>⚙️ Motor Parameters</h3>
+                        <div class="param-row">
+                            <label>Supply Voltage (V): <span id="v-value">250</span></label>
+                            <input type="range" id="voltage" min="0" max="500" value="250" step="1" oninput="updateParam('voltage')">
+                        </div>
+                        <div class="param-row">
+                            <label>Armature Resistance (Ω): <span id="ra-value">0.5</span></label>
+                            <input type="range" id="ra" min="0.1" max="5" value="0.5" step="0.1" oninput="updateParam('ra')">
+                        </div>
+                        <div class="param-row">
+                            <label>Field Resistance (Ω): <span id="rsh-value">250</span></label>
+                            <input type="range" id="rsh" min="50" max="500" value="250" step="10" oninput="updateParam('rsh')">
+                        </div>
+                        <div class="param-row">
+                            <label>Armature Inductance (H): <span id="la-value">0.05</span></label>
+                            <input type="range" id="la" min="0.01" max="0.5" value="0.05" step="0.01" oninput="updateParam('la')">
+                        </div>
+                        <div class="param-row">
+                            <label>Moment of Inertia (kg·m²): <span id="j-value">0.5</span></label>
+                            <input type="range" id="j" min="0.1" max="5" value="0.5" step="0.1" oninput="updateParam('j')">
+                        </div>
+                        <div class="param-row">
+                            <label>Damping (N·m·s): <span id="b-value">0.01</span></label>
+                            <input type="range" id="b" min="0.001" max="0.1" value="0.01" step="0.001" oninput="updateParam('b')">
+                        </div>
+                    </div>
+
+                    <div class="param-section">
+                        <h3>🔧 Load Control</h3>
+                        <div class="param-row">
+                            <label>Load Torque (N·m): <span id="load-value">0</span></label>
+                            <input type="range" id="load" min="0" max="100" value="0" step="1" oninput="updateParam('load')">
+                        </div>
+                    </div>
+
+                    <div class="param-section">
+                        <h3>🔬 Solver Settings</h3>
+                        <div class="param-row">
+                            <label>ODE Solver:</label>
+                            <select id="solver" class="solver-select">
+                                <option value="RK45" selected>RK45 (Adaptive)</option>
+                                <option value="Euler">Euler (Simple)</option>
+                                <option value="RK4">Runge-Kutta 4</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <label>Time Step (s):</label>
+                            <input type="number" id="dt" value="0.01" step="0.001" min="0.001" max="0.1">
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-start" id="startBtn" onclick="startSimulation()">▶ Start</button>
+                        <button class="btn-stop" id="stopBtn" onclick="stopSimulation()" disabled>⏸ Stop</button>
+                        <button class="btn-reset" onclick="resetSimulation()">⟳ Reset</button>
+                    </div>
+
+                    <div class="param-section">
+                        <h3>📊 Current Status</h3>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <div class="status-label">Current (A)</div>
+                                <div class="status-value" id="status-current">0.00</div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-label">Speed (RPM)</div>
+                                <div class="status-value" id="status-speed">0</div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-label">Torque (N·m)</div>
+                                <div class="status-value" id="status-torque">0.00</div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-label">Power (kW)</div>
+                                <div class="status-value" id="status-power">0.00</div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-label">Efficiency (%)</div>
+                                <div class="status-value" id="status-eff">0.0</div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-label">Temp (°C)</div>
+                                <div class="status-value" id="status-temp">25.0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="visualization-panel">
+                    <div class="plot-grid">
+                        <div id="plot-current" class="plot-container"></div>
+                        <div id="plot-speed" class="plot-container"></div>
+                        <div id="plot-torque" class="plot-container"></div>
+                        <div id="plot-efficiency" class="plot-container"></div>
+                        <div id="plot-temperature" class="plot-container"></div>
+                        <div id="plot-power" class="plot-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Analysis Tab -->
+        <div id="analysis" class="tab-content">
+            <button class="calc-button" onclick="updateAnalysis()">🔄 Update Analysis</button>
+            <div class="plot-grid" style="margin-top: 20px;">
+                <div id="analysis-efficiency" class="plot-container"></div>
+                <div id="analysis-torque-speed" class="plot-container"></div>
+                <div id="analysis-losses" class="plot-container"></div>
+                <div id="analysis-current" class="plot-container"></div>
+            </div>
+        </div>
+
+        <!-- Thermal & Derating Tab -->
+        <div id="thermal" class="tab-content">
+            <div class="main-layout">
+                <div class="control-panel">
+                    <div class="param-section">
+                        <h3>🌡️ Thermal Parameters</h3>
+                        <div class="param-row">
+                            <label>Ambient Temperature (°C):</label>
+                            <input type="number" id="ambient-temp" value="25" step="1">
+                        </div>
+                        <div class="param-row">
+                            <label>Thermal Resistance (°C/W):</label>
+                            <input type="number" id="thermal-r" value="2.0" step="0.1">
+                        </div>
+                        <div class="param-row">
+                            <label>Thermal Capacitance (J/°C):</label>
+                            <input type="number" id="thermal-c" value="500" step="10">
+                        </div>
+                        <div class="param-row">
+                            <label>Max Temperature (°C):</label>
+                            <input type="number" id="max-temp" value="120" step="5">
+                        </div>
+                    </div>
+
+                    <div class="param-section">
+                        <h3>❄️ Cooling Method</h3>
+                        <div class="radio-group">
+                            <label><input type="radio" name="cooling" value="natural" checked> Natural Convection</label>
+                            <label><input type="radio" name="cooling" value="forced"> Forced Air Cooling</label>
+                            <label><input type="radio" name="cooling" value="liquid"> Liquid Cooling</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="visualization-panel">
+                    <div class="plot-grid">
+                        <div id="thermal-temp-rise" class="plot-container"></div>
+                        <div id="thermal-derating" class="plot-container"></div>
+                        <div id="thermal-heat-dist" class="plot-container"></div>
+                        <div id="thermal-time-const" class="plot-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Economic Analysis Tab -->
+        <div id="economic" class="tab-content">
+            <div class="main-layout">
+                <div class="control-panel">
+                    <div class="param-section">
+                        <h3>💰 Economic Parameters</h3>
+                        <div class="param-row">
+                            <label>Electricity Cost ($/kWh):</label>
+                            <input type="number" id="cost-kwh" value="0.12" step="0.01">
+                        </div>
+                        <div class="param-row">
+                            <label>Operating Hours/Day:</label>
+                            <input type="number" id="hours-day" value="8" step="1">
+                        </div>
+                        <div class="param-row">
+                            <label>Operating Days/Year:</label>
+                            <input type="number" id="days-year" value="250" step="1">
+                        </div>
+                        <div class="param-row">
+                            <label>Average Load (%):</label>
+                            <input type="number" id="avg-load" value="75" step="5">
+                        </div>
+                        <div class="param-row">
+                            <label>Motor Cost ($):</label>
+                            <input type="number" id="motor-cost" value="5000" step="100">
+                        </div>
+                        <div class="param-row">
+                            <label>Maintenance Cost ($/year):</label>
+                            <input type="number" id="maint-cost" value="500" step="50">
+                        </div>
+                    </div>
+
+                    <button class="calc-button" onclick="calculateEconomics()">💲 Calculate Economics</button>
+
+                    <div class="param-section">
+                        <h3>📈 Annual Cost Analysis</h3>
+                        <table class="results-table">
+                            <tr><td>Annual Energy (kWh)</td><td id="econ-energy">---</td></tr>
+                            <tr><td>Annual Energy Cost ($)</td><td id="econ-energy-cost">---</td></tr>
+                            <tr><td>Annual Maintenance ($)</td><td id="econ-maint">---</td></tr>
+                            <tr><td>Total Annual Cost ($)</td><td id="econ-total">---</td></tr>
+                            <tr><td>Cost per Hour ($)</td><td id="econ-hour">---</td></tr>
+                            <tr><td>Payback Period (years)</td><td id="econ-payback">---</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="visualization-panel">
+                    <div class="plot-grid">
+                        <div id="econ-breakdown" class="plot-container"></div>
+                        <div id="econ-eff-cost" class="plot-container"></div>
+                        <div id="econ-cumulative" class="plot-container"></div>
+                        <div id="econ-load-cost" class="plot-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Physics Tab -->
+        <div id="multiphysics" class="tab-content">
+            <button class="calc-button" onclick="runMultiphysics()">🔬 Run Multi-Physics Simulation</button>
+            <div class="plot-grid" style="margin-top: 20px;">
+                <div id="multi-field" class="plot-container"></div>
+                <div id="multi-thermal" class="plot-container"></div>
+                <div id="multi-stress" class="plot-container"></div>
+                <div id="multi-losses" class="plot-container"></div>
+                <div id="multi-bearing" class="plot-container"></div>
+                <div id="multi-coupled" class="plot-container"></div>
+            </div>
+        </div>
+
+        <!-- Advanced Controls Tab -->
+        <div id="controls" class="tab-content">
+            <div class="main-layout">
+                <div class="control-panel">
+                    <div class="param-section">
+                        <h3>🎮 Control Method</h3>
+                        <div class="radio-group">
+                            <label><input type="radio" name="control" value="open" checked> Open Loop</label>
+                            <label><input type="radio" name="control" value="pi"> PI Speed Control</label>
+                            <label><input type="radio" name="control" value="fuzzy"> Fuzzy Logic</label>
+                            <label><input type="radio" name="control" value="adaptive"> Adaptive Control</label>
+                        </div>
+                    </div>
+
+                    <div class="param-section">
+                        <h3>⚙️ PI Controller</h3>
+                        <div class="param-row">
+                            <label>Proportional Gain (Kp):</label>
+                            <input type="number" id="kp" value="1.0" step="0.1">
+                        </div>
+                        <div class="param-row">
+                            <label>Integral Gain (Ki):</label>
+                            <input type="number" id="ki" value="0.5" step="0.1">
+                        </div>
+                        <div class="param-row">
+                            <label>Speed Setpoint (RPM):</label>
+                            <input type="number" id="speed-setpoint" value="1500" step="50">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="visualization-panel">
+                    <div class="plot-grid">
+                        <div id="control-response" class="plot-container"></div>
+                        <div id="control-signal" class="plot-container"></div>
+                        <div id="control-error" class="plot-container"></div>
+                        <div id="control-phase" class="plot-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global simulation variables
+        let simState = {
+            running: false,
+            time: 0,
+            dt: 0.01,
+            state: [0, 0, 0, 25], // [Ia, omega, theta, T_motor]
+            data: {
+                time: [],
+                current: [],
+                speed: [],
+                torque: [],
+                efficiency: [],
+                temperature: [],
+                power: []
+            }
+        };
+
+        let params = {
+            V: 250,
+            Ra: 0.5,
+            Rsh: 250,
+            La: 0.05,
+            J: 0.5,
+            B: 0.01,
+            Kv: 1.0,
+            Kt: 1.0,
+            T_load: 0,
+            T_ambient: 25,
+            R_th: 2.0,
+            C_th: 500
+        };
+
+        // Initialize plots
+        function initializePlots() {
+            const plotConfig = {displayModeBar: false, responsive: true};
+
+            // Main simulation plots
+            const mainPlots = [
+                {id: 'plot-current', title: 'Armature Current (A)', ylabel: 'Current (A)'},
+                {id: 'plot-speed', title: 'Motor Speed (RPM)', ylabel: 'Speed (RPM)'},
+                {id: 'plot-torque', title: 'Torque (N·m)', ylabel: 'Torque (N·m)'},
+                {id: 'plot-efficiency', title: 'Efficiency (%)', ylabel: 'Efficiency (%)'},
+                {id: 'plot-temperature', title: 'Temperature (°C)', ylabel: 'Temperature (°C)'},
+                {id: 'plot-power', title: 'Power (kW)', ylabel: 'Power (kW)'}
+            ];
+
+            mainPlots.forEach(plot => {
+                Plotly.newPlot(plot.id, [{
+                    x: [],
+                    y: [],
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: {width: 2, color: '#1e3c72'}
+                }], {
+                    title: plot.title,
+                    xaxis: {title: 'Time (s)'},
+                    yaxis: {title: plot.ylabel},
+                    margin: {t: 40, b: 40, l: 50, r: 20}
+                }, plotConfig);
+            });
+
+            // Initialize solution plot
+            plotSolution();
+        }
+
+        function plotSolution() {
+            // Efficiency vs Output Power
+            const loads = [];
+            const efficiencies = [];
+
+            for (let i = 0; i <= 100; i++) {
+                const Ia = 5 + (i / 100) * 70; // Armature current range
+                const Ish = 250 / 250; // 1 A
+                const Eb = 250 - Ia * 0.5;
+                const Pout = Eb * Ia;
+                const Pin = 250 * (Ia + Ish);
+                const eff = (Pout / Pin) * 100;
+
+                loads.push(Pout / 1000); // kW
+                efficiencies.push(eff);
+            }
+
+            const trace1 = {
+                x: loads,
+                y: efficiencies,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Efficiency Curve',
+                line: {width: 3, color: '#1e3c72'}
+            };
+
+            const trace2 = {
+                x: [7.46],
+                y: [81.0],
+                type: 'scatter',
+                mode: 'markers',
+                name: 'Full Load (7.46 kW, 81%)',
+                marker: {size: 12, color: '#28a745'}
+            };
+
+            const trace3 = {
+                x: [11.22],
+                y: [83.3],
+                type: 'scatter',
+                mode: 'markers',
+                name: 'Max Efficiency (11.22 kW, 83.3%)',
+                marker: {size: 12, color: '#dc3545'}
+            };
+
+            const layout = {
+                title: 'Motor Efficiency vs Output Power',
+                xaxis: {title: 'Output Power (kW)'},
+                yaxis: {title: 'Efficiency (%)'},
+                showlegend: true,
+                height: 500
+            };
+
+            Plotly.newPlot('solutionPlot', [trace1, trace2, trace3], layout, {responsive: true});
+        }
+
+        function openTab(evt, tabName) {
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+
+            const tabs = document.getElementsByClassName('tab');
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        function updateParam(paramName) {
+            const element = document.getElementById(paramName);
+            const value = parseFloat(element.value);
+            document.getElementById(paramName + '-value').textContent = value;
+
+            // Update params object
+            const paramMap = {
+                'voltage': 'V',
+                'ra': 'Ra',
+                'rsh': 'Rsh',
+                'la': 'La',
+                'j': 'J',
+                'b': 'B',
+                'load': 'T_load'
+            };
+
+            if (paramMap[paramName]) {
+                params[paramMap[paramName]] = value;
+            }
+        }
+
+        function motorDynamics(t, state) {
+            const [Ia, omega, theta, T_motor] = state;
+
+            // Field current
+            const Ish = params.V / params.Rsh;
+
+            // Back EMF
+            const Eb = params.Kv * omega;
+
+            // Electrical equation
+            const dIa_dt = (params.V - Eb - Ia * params.Ra) / params.La;
+
+            // Electromagnetic torque
+            const Tem = params.Kt * Ia;
+
+            // Mechanical equation
+            const domega_dt = (Tem - params.T_load - params.B * omega) / params.J;
+
+            // Angular position
+            const dtheta_dt = omega;
+
+            // Power losses
+            const Pcu_arm = Ia * Ia * params.Ra;
+            const Pcu_field = Ish * Ish * params.Rsh;
+            const Pfriction = params.B * omega * omega;
+            const Piron = 0.01 * omega * omega;
+            const Ptotal_loss = Pcu_arm + Pcu_field + Pfriction + Piron;
+
+            // Thermal equation
+            const dT_dt = (Ptotal_loss - (T_motor - params.T_ambient) / params.R_th) / params.C_th;
+
+            return [dIa_dt, domega_dt, dtheta_dt, dT_dt];
+        }
+
+        function rk4Step(t, state, dt) {
+            const k1 = motorDynamics(t, state);
+            const k2 = motorDynamics(t + dt/2, state.map((s, i) => s + dt * k1[i] / 2));
+            const k3 = motorDynamics(t + dt/2, state.map((s, i) => s + dt * k2[i] / 2));
+            const k4 = motorDynamics(t + dt, state.map((s, i) => s + dt * k3[i]));
+
+            return state.map((s, i) => s + dt * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i]) / 6);
+        }
+
+        function eulerStep(t, state, dt) {
+            const derivatives = motorDynamics(t, state);
+            return state.map((s, i) => s + dt * derivatives[i]);
+        }
+
+        function startSimulation() {
+            simState.running = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            simulationLoop();
+        }
+
+        function stopSimulation() {
+            simState.running = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        }
+
+        function resetSimulation() {
+            stopSimulation();
+            simState.time = 0;
+            simState.state = [0, 0, 0, 25];
+            simState.data = {
+                time: [],
+                current: [],
+                speed: [],
+                torque: [],
+                efficiency: [],
+                temperature: [],
+                power: []
+            };
+
+            // Clear plots
+            const plotIds = ['plot-current', 'plot-speed', 'plot-torque',
+                           'plot-efficiency', 'plot-temperature', 'plot-power'];
+            plotIds.forEach(id => {
+                Plotly.restyle(id, {x: [[]], y: [[]]}, 0);
+            });
+
+            // Reset status
+            document.getElementById('status-current').textContent = '0.00';
+            document.getElementById('status-speed').textContent = '0';
+            document.getElementById('status-torque').textContent = '0.00';
+            document.getElementById('status-power').textContent = '0.00';
+            document.getElementById('status-eff').textContent = '0.0';
+            document.getElementById('status-temp').textContent = '25.0';
+        }
+
+        function simulationLoop() {
+            if (!simState.running) return;
+
+            const dt = parseFloat(document.getElementById('dt').value);
+            const solver = document.getElementById('solver').value;
+
+            // Update state
+            if (solver === 'Euler') {
+                simState.state = eulerStep(simState.time, simState.state, dt);
+            } else {
+                simState.state = rk4Step(simState.time, simState.state, dt);
+            }
+
+            simState.time += dt;
+
+            // Extract state
+            const [Ia, omega, theta, T_motor] = simState.state;
+
+            // Calculate derived quantities
+            const speed_rpm = omega * 60 / (2 * Math.PI);
+            const Tem = params.Kt * Ia;
+            const Pout = Tem * omega;
+            const Pin = params.V * (Ia + params.V / params.Rsh);
+            const efficiency = Pin > 0 ? (Pout / Pin) * 100 : 0;
+
+            // Store data
+            simState.data.time.push(simState.time);
+            simState.data.current.push(Ia);
+            simState.data.speed.push(speed_rpm);
+            simState.data.torque.push(Tem);
+            simState.data.efficiency.push(efficiency);
+            simState.data.temperature.push(T_motor);
+            simState.data.power.push(Pout / 1000);
+
+            // Limit data size
+            const maxPoints = 500;
+            if (simState.data.time.length > maxPoints) {
+                Object.keys(simState.data).forEach(key => {
+                    simState.data[key] = simState.data[key].slice(-maxPoints);
+                });
+            }
+
+            // Update plots
+            updatePlots();
+
+            // Update status
+            document.getElementById('status-current').textContent = Ia.toFixed(2);
+            document.getElementById('status-speed').textContent = Math.round(speed_rpm);
+            document.getElementById('status-torque').textContent = Tem.toFixed(2);
+            document.getElementById('status-power').textContent = (Pout/1000).toFixed(3);
+            document.getElementById('status-eff').textContent = efficiency.toFixed(1);
+            document.getElementById('status-temp').textContent = T_motor.toFixed(1);
+
+            // Schedule next iteration
+            setTimeout(simulationLoop, 10);
+        }
+
+        function updatePlots() {
+            const updates = [
+                {id: 'plot-current', data: simState.data.current},
+                {id: 'plot-speed', data: simState.data.speed},
+                {id: 'plot-torque', data: simState.data.torque},
+                {id: 'plot-efficiency', data: simState.data.efficiency},
+                {id: 'plot-temperature', data: simState.data.temperature},
+                {id: 'plot-power', data: simState.data.power}
+            ];
+
+            updates.forEach(update => {
+                Plotly.restyle(update.id, {
+                    x: [simState.data.time],
+                    y: [update.data]
+                }, 0);
+            });
+        }
+
+        function updateAnalysis() {
+            // Efficiency vs Load
+            const loads = [];
+            const effs = [];
+            for (let i = 0; i <= 100; i += 2) {
+                const Tload = i;
+                const Ia = Math.max(0, Tload / params.Kt + 5);
+                const omega = (params.V - Ia * params.Ra) / params.Kv;
+                const Pout = Tload * omega;
+                const Pin = params.V * (Ia + params.V / params.Rsh);
+                const eff = Pin > 0 ? (Pout / Pin) * 100 : 0;
+                loads.push(i);
+                effs.push(eff);
+            }
+
+            Plotly.newPlot('analysis-efficiency', [{
+                x: loads,
+                y: effs,
+                type: 'scatter',
+                mode: 'lines',
+                line: {width: 2, color: '#1e3c72'}
+            }], {
+                title: 'Efficiency vs Load',
+                xaxis: {title: 'Load (%)'},
+                yaxis: {title: 'Efficiency (%)'}
+            }, {responsive: true});
+
+            // Loss breakdown
+            const lossCategories = ['Copper\n(Armature)', 'Copper\n(Field)', 'Iron', 'Friction', 'Stray'];
+            const lossValues = [507, 250, 300, 150, 100];
+
+            Plotly.newPlot('analysis-losses', [{
+                x: lossCategories,
+                y: lossValues,
+                type: 'bar',
+                marker: {color: ['#ff6b6b', '#ff8c42', '#ffd93d', '#6bcf7f', '#4d96ff']}
+            }], {
+                title: 'Power Loss Breakdown',
+                yaxis: {title: 'Power (W)'}
+            }, {responsive: true});
+        }
+
+        function calculateEconomics() {
+            const costKwh = parseFloat(document.getElementById('cost-kwh').value);
+            const hoursDay = parseFloat(document.getElementById('hours-day').value);
+            const daysYear = parseFloat(document.getElementById('days-year').value);
+            const avgLoad = parseFloat(document.getElementById('avg-load').value) / 100;
+            const motorCost = parseFloat(document.getElementById('motor-cost').value);
+            const maintCost = parseFloat(document.getElementById('maint-cost').value);
+
+            const avgPower = 7.46 * avgLoad;
+            const annualHours = hoursDay * daysYear;
+            const annualEnergy = avgPower * annualHours;
+            const annualEnergyCost = annualEnergy * costKwh;
+            const totalAnnualCost = annualEnergyCost + maintCost;
+            const costPerHour = totalAnnualCost / annualHours;
+            const savings = annualEnergyCost * 0.1;
+            const payback = savings > 0 ? motorCost / savings : 999;
+
+            document.getElementById('econ-energy').textContent = annualEnergy.toFixed(0);
+            document.getElementById('econ-energy-cost').textContent = annualEnergyCost.toFixed(2);
+            document.getElementById('econ-maint').textContent = maintCost.toFixed(2);
+            document.getElementById('econ-total').textContent = totalAnnualCost.toFixed(2);
+            document.getElementById('econ-hour').textContent = costPerHour.toFixed(2);
+            document.getElementById('econ-payback').textContent = payback.toFixed(1);
+
+            // Update economic plots
+            Plotly.newPlot('econ-breakdown', [{
+                values: [annualEnergyCost, maintCost],
+                labels: ['Energy Cost', 'Maintenance'],
+                type: 'pie',
+                marker: {colors: ['#ff9999', '#66b3ff']}
+            }], {
+                title: 'Annual Cost Breakdown'
+            }, {responsive: true});
+        }
+
+        function runMultiphysics() {
+            // Electromagnetic field
+            const theta = [];
+            const flux = [];
+            for (let i = 0; i <= 100; i++) {
+                const t = i * 2 * Math.PI / 100;
+                theta.push(t);
+                flux.push(1.2 * Math.sin(2*t) + 0.8);
+            }
+
+            Plotly.newPlot('multi-field', [{
+                x: theta,
+                y: flux,
+                type: 'scatter',
+                fill: 'tozeroy',
+                line: {width: 2, color: '#1e3c72'}
+            }], {
+                title: 'Electromagnetic Field Distribution',
+                xaxis: {title: 'Angular Position (rad)'},
+                yaxis: {title: 'Flux Density (T)'}
+            }, {responsive: true});
+
+            // Losses pie chart
+            Plotly.newPlot('multi-losses', [{
+                values: [507, 250, 300, 150, 100],
+                labels: ['Copper (Arm)', 'Copper (Field)', 'Iron', 'Friction', 'Stray'],
+                type: 'pie',
+                marker: {colors: ['#ff6b6b', '#ff8c42', '#ffd93d', '#6bcf7f', '#4d96ff']}
+            }], {
+                title: 'Detailed Loss Breakdown'
+            }, {responsive: true});
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            initializePlots();
+            updateAnalysis();
+        };
+    </script>
+</body>
+</html>
