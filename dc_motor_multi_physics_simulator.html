@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced DC Motor Multi-Physics Simulator</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            grid-template-rows: auto 1fr;
+            height: 95vh;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            border-right: 2px solid #dee2e6;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .main-content {
+            padding: 15px;
+            overflow-y: auto;
+            background: #ffffff;
+        }
+
+        .tabs {
+            display: flex;
+            background: #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #495057;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        .tab.active {
+            background: white;
+            color: #2a5298;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .control-group h3 {
+            font-size: 16px;
+            color: #2a5298;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .param-row {
+            margin-bottom: 12px;
+        }
+
+        .param-row label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .param-row input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #dee2e6;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .param-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2a5298;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .param-row input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2a5298;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .param-row input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 3px;
+        }
+
+        .value-display span {
+            font-size: 13px;
+            color: #2a5298;
+            font-weight: 600;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .btn-full {
+            grid-column: 1 / -1;
+        }
+
+        .plot-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .plot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 15px;
+        }
+
+        .status-display {
+            background: #f8f9fa;
+            border-left: 4px solid #2a5298;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .status-display h4 {
+            color: #2a5298;
+            margin-bottom: 10px;
+        }
+
+        .result-box {
+            background: #e7f3ff;
+            border: 2px solid #2a5298;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            font-size: 12px;
+            line-height: 1.8;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .result-box h3 {
+            color: #2a5298;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .solver-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .sidebar {
+                border-right: none;
+                border-bottom: 2px solid #dee2e6;
+            }
+
+            .plot-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Advanced DC Motor Multi-Physics Simulator</h1>
+            <p>Comprehensive electromagnetic, thermal, mechanical, and acoustic modeling</p>
+        </div>
+
+        <div class="sidebar">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('params')">Parameters</button>
+                <button class="tab" onclick="switchTab('control')">Control</button>
+                <button class="tab" onclick="switchTab('economics')">Economics</button>
+                <button class="tab" onclick="switchTab('advanced')">Advanced</button>
+            </div>
+
+            <div id="params-tab" class="tab-content active">
+                <div class="control-group">
+                    <h3>⚙️ Motor Parameters</h3>
+
+                    <div class="param-row">
+                        <label>Supply Voltage (V)</label>
+                        <input type="range" id="V_supply" min="0" max="500" value="250" step="1" oninput="updateParam('V_supply')">
+                        <div class="value-display">
+                            <span id="V_supply_val">250 V</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Armature Resistance (Ω)</label>
+                        <input type="range" id="Ra" min="0.01" max="2" value="0.25" step="0.01" oninput="updateParam('Ra')">
+                        <div class="value-display">
+                            <span id="Ra_val">0.25 Ω</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Field Resistance (Ω)</label>
+                        <input type="range" id="Rf" min="10" max="500" value="250" step="1" oninput="updateParam('Rf')">
+                        <div class="value-display">
+                            <span id="Rf_val">250 Ω</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Armature Inductance (H)</label>
+                        <input type="range" id="La" min="0.01" max="1" value="0.05" step="0.01" oninput="updateParam('La')">
+                        <div class="value-display">
+                            <span id="La_val">0.05 H</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Field Inductance (H)</label>
+                        <input type="range" id="Lf" min="0.1" max="5" value="1.0" step="0.1" oninput="updateParam('Lf')">
+                        <div class="value-display">
+                            <span id="Lf_val">1.0 H</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Moment of Inertia (kg·m²)</label>
+                        <input type="range" id="J" min="0.01" max="5" value="0.5" step="0.01" oninput="updateParam('J')">
+                        <div class="value-display">
+                            <span id="J_val">0.5 kg·m²</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Friction Coefficient (N·m·s)</label>
+                        <input type="range" id="B" min="0.001" max="0.1" value="0.01" step="0.001" oninput="updateParam('B')">
+                        <div class="value-display">
+                            <span id="B_val">0.01 N·m·s</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Torque Constant (Kt)</label>
+                        <input type="range" id="Kt" min="0.1" max="5" value="1.0" step="0.1" oninput="updateParam('Kt')">
+                        <div class="value-display">
+                            <span id="Kt_val">1.0</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Back EMF Constant (Ke)</label>
+                        <input type="range" id="Ke" min="0.1" max="5" value="1.0" step="0.1" oninput="updateParam('Ke')">
+                        <div class="value-display">
+                            <span id="Ke_val">1.0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="control-tab" class="tab-content">
+                <div class="control-group">
+                    <h3>🎛️ Control Settings</h3>
+
+                    <div class="param-row">
+                        <label>Load Torque (N·m)</label>
+                        <input type="range" id="T_load" min="0" max="50" value="10" step="0.5" oninput="updateControl('T_load')">
+                        <div class="value-display">
+                            <span id="T_load_val">10 N·m</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Additional Field Resistance (Ω)</label>
+                        <input type="range" id="Rf_added" min="0" max="500" value="0" step="1" oninput="updateControl('Rf_added')">
+                        <div class="value-display">
+                            <span id="Rf_added_val">0 Ω</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Speed Reference (RPM)</label>
+                        <input type="range" id="speed_ref" min="0" max="3000" value="1500" step="10" oninput="updateControl('speed_ref')">
+                        <div class="value-display">
+                            <span id="speed_ref_val">1500 RPM</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-display">
+                    <h4>📊 Current Status</h4>
+                    <div id="current-status">
+                        <p>Speed: 0 RPM</p>
+                        <p>Current: 0 A</p>
+                        <p>Torque: 0 N·m</p>
+                        <p>Power: 0 W</p>
+                        <p>Temp: 25°C</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="economics-tab" class="tab-content">
+                <div class="control-group">
+                    <h3>💰 Economic Analysis</h3>
+
+                    <div class="param-row">
+                        <label>Electricity Cost ($/kWh)</label>
+                        <input type="number" id="elec_cost" value="0.12" step="0.01" min="0">
+                    </div>
+
+                    <div class="param-row">
+                        <label>Operating Hours (h/year)</label>
+                        <input type="number" id="op_hours" value="8760" step="100" min="0">
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-success btn-full" onclick="calculateEconomics()">
+                            Calculate Economics
+                        </button>
+                    </div>
+
+                    <div id="economic-results" class="result-box" style="display:none; margin-top: 15px;">
+                    </div>
+                </div>
+            </div>
+
+            <div id="advanced-tab" class="tab-content">
+                <div class="control-group">
+                    <h3>🔬 Advanced Settings</h3>
+
+                    <div class="param-row">
+                        <label>Time Step (ms)</label>
+                        <input type="number" id="dt" value="1" step="0.1" min="0.1">
+                    </div>
+
+                    <div class="param-row">
+                        <label>ODE Solver</label>
+                        <select id="solver" class="solver-select">
+                            <option value="euler">Euler Method</option>
+                            <option value="rk4" selected>Runge-Kutta 4th Order (RK4)</option>
+                            <option value="rk45">RK45 Adaptive</option>
+                        </select>
+                    </div>
+
+                    <div class="param-row">
+                        <label>Thermal Resistance (°C/W)</label>
+                        <input type="number" id="thermal_R" value="2.0" step="0.1" min="0.1">
+                    </div>
+
+                    <div class="param-row">
+                        <label>Thermal Capacitance (J/°C)</label>
+                        <input type="number" id="thermal_C" value="500" step="10" min="10">
+                    </div>
+
+                    <div class="param-row">
+                        <label>Max Temperature (°C)</label>
+                        <input type="number" id="max_temp" value="155" step="1" min="50">
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="startSimulation()">▶️ START</button>
+                <button class="btn btn-danger" onclick="stopSimulation()">⏸️ STOP</button>
+                <button class="btn btn-success" onclick="resetSimulation()">🔄 RESET</button>
+                <button class="btn btn-warning btn-full" onclick="solveProblem()">📝 SOLVE PROBLEM</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="tabs">
+                <button class="tab active" onclick="switchVizTab('dynamics')">Dynamic Response</button>
+                <button class="tab" onclick="switchVizTab('losses')">Loss Analysis</button>
+                <button class="tab" onclick="switchVizTab('efficiency')">Efficiency Map</button>
+                <button class="tab" onclick="switchVizTab('thermal')">Thermal & Acoustic</button>
+            </div>
+
+            <div id="dynamics-viz" class="tab-content active">
+                <div class="plot-grid">
+                    <div id="plot-speed" class="plot-container"></div>
+                    <div id="plot-current" class="plot-container"></div>
+                    <div id="plot-torque" class="plot-container"></div>
+                    <div id="plot-power" class="plot-container"></div>
+                    <div id="plot-efficiency" class="plot-container"></div>
+                    <div id="plot-temp" class="plot-container"></div>
+                </div>
+            </div>
+
+            <div id="losses-viz" class="tab-content">
+                <div class="plot-grid">
+                    <div id="plot-loss-breakdown" class="plot-container"></div>
+                    <div id="plot-loss-pie" class="plot-container"></div>
+                    <div id="plot-total-loss" class="plot-container"></div>
+                    <div id="plot-eff-vs-load" class="plot-container"></div>
+                </div>
+            </div>
+
+            <div id="efficiency-viz" class="tab-content">
+                <div id="plot-efficiency-map" class="plot-container" style="height: 600px;"></div>
+            </div>
+
+            <div id="thermal-viz" class="tab-content">
+                <div class="plot-grid">
+                    <div id="plot-thermal-response" class="plot-container"></div>
+                    <div id="plot-acoustic" class="plot-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+    <script>
+        // Constants
+        const PI = Math.PI;
+
+        // Motor parameters
+        let params = {
+            V_supply: 250,
+            Ra: 0.25,
+            Rf: 250,
+            Rf_added: 0,
+            La: 0.05,
+            Lf: 1.0,
+            J: 0.5,
+            B: 0.01,
+            Kt: 1.0,
+            Ke: 1.0,
+            thermal_R: 2.0,
+            thermal_C: 500,
+            ambient_temp: 25,
+            max_temp: 155
+        };
+
+        // Control variables
+        let control = {
+            T_load: 10,
+            speed_ref: 1500,
+            dt: 0.001,
+            solver: 'rk4'
+        };
+
+        // Simulation state
+        let state = {
+            Ia: 0,
+            If: 0,
+            omega: 0,
+            temp: 25
+        };
+
+        // History
+        let history = {
+            t: [], Ia: [], If: [], omega: [], rpm: [],
+            torque: [], power_in: [], power_out: [], efficiency: [],
+            temp: [], copper_loss: [], iron_loss: [], mech_loss: [],
+            stray_loss: [], total_loss: [], sound_level: []
+        };
+
+        // Simulation control
+        let isRunning = false;
+        let simTime = 0;
+        let animationFrame = null;
+
+        // Physics functions
+        function magnetizationCurve(If) {
+            return params.Kt * If;
+        }
+
+        function backEMF(omega, If) {
+            const flux = magnetizationCurve(If);
+            return params.Ke * omega * flux;
+        }
+
+        function electromagneticTorque(Ia, If) {
+            const flux = magnetizationCurve(If);
+            return flux * Ia;
+        }
+
+        function copperLosses(Ia, If) {
+            const Rf_total = params.Rf + params.Rf_added;
+            return Ia * Ia * params.Ra + If * If * Rf_total;
+        }
+
+        function ironLosses(omega) {
+            const freq = Math.abs(omega) * 2 / (2 * PI);
+            const k_h = 0.5;
+            const k_e = 0.02;
+            return k_h * freq + k_e * freq * freq;
+        }
+
+        function mechanicalLosses(omega) {
+            const P_bearing = 10;
+            return params.B * omega * omega + P_bearing;
+        }
+
+        function strayLosses(Ia) {
+            return 0.01 * Math.abs(Ia) * params.V_supply;
+        }
+
+        function totalLosses(Ia, If, omega) {
+            return copperLosses(Ia, If) + ironLosses(omega) +
+                   mechanicalLosses(omega) + strayLosses(Ia);
+        }
+
+        function acousticNoise(omega, Ia) {
+            const rpm = Math.abs(omega) * 60 / (2 * PI);
+            const L_speed = 20 * Math.log10(rpm + 1);
+            const L_current = 15 * Math.log10(Math.abs(Ia) + 1);
+            const L_base = 40;
+            return L_base + L_speed + L_current;
+        }
+
+        function thermalModel(temp, losses) {
+            const heat_dissipation = (temp - params.ambient_temp) / params.thermal_R;
+            return (losses - heat_dissipation) / params.thermal_C;
+        }
+
+        // ODE system
+        function odeSystem(state, T_load, V_supply) {
+            const [Ia, If, omega, temp] = state;
+            const Rf_total = params.Rf + params.Rf_added;
+            const Eb = backEMF(omega, If);
+
+            // Derivatives
+            const dIa_dt = (V_supply - Ia * params.Ra - Eb) / params.La;
+            const dIf_dt = (V_supply - If * Rf_total) / params.Lf;
+            const Te = electromagneticTorque(Ia, If);
+            const domega_dt = (Te - T_load - params.B * omega) / params.J;
+            const losses = totalLosses(Ia, If, omega);
+            const dtemp_dt = thermalModel(temp, losses);
+
+            return [dIa_dt, dIf_dt, domega_dt, dtemp_dt];
+        }
+
+        // Euler integration
+        function eulerStep(state, dt, T_load, V_supply) {
+            const derivatives = odeSystem(state, T_load, V_supply);
+            return state.map((val, i) => val + derivatives[i] * dt);
+        }
+
+        // RK4 integration
+        function rk4Step(state, dt, T_load, V_supply) {
+            const k1 = odeSystem(state, T_load, V_supply);
+            const state2 = state.map((val, i) => val + 0.5 * dt * k1[i]);
+            const k2 = odeSystem(state2, T_load, V_supply);
+            const state3 = state.map((val, i) => val + 0.5 * dt * k2[i]);
+            const k3 = odeSystem(state3, T_load, V_supply);
+            const state4 = state.map((val, i) => val + dt * k3[i]);
+            const k4 = odeSystem(state4, T_load, V_supply);
+
+            return state.map((val, i) =>
+                val + (dt / 6) * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i])
+            );
+        }
+
+        // Update parameter display
+        function updateParam(param) {
+            const value = parseFloat(document.getElementById(param).value);
+            params[param] = value;
+
+            const units = {
+                V_supply: 'V', Ra: 'Ω', Rf: 'Ω', La: 'H', Lf: 'H',
+                J: 'kg·m²', B: 'N·m·s', Kt: '', Ke: ''
+            };
+
+            document.getElementById(param + '_val').textContent =
+                value.toFixed(2) + ' ' + (units[param] || '');
+        }
+
+        function updateControl(param) {
+            const value = parseFloat(document.getElementById(param).value);
+
+            if (param === 'Rf_added') {
+                params.Rf_added = value;
+                document.getElementById(param + '_val').textContent = value.toFixed(0) + ' Ω';
+            } else if (param === 'T_load') {
+                control.T_load = value;
+                document.getElementById(param + '_val').textContent = value.toFixed(1) + ' N·m';
+            } else if (param === 'speed_ref') {
+                control.speed_ref = value;
+                document.getElementById(param + '_val').textContent = value.toFixed(0) + ' RPM';
+            }
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.sidebar .tab');
+            const contents = document.querySelectorAll('.sidebar .tab-content');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        function switchVizTab(tabName) {
+            const tabs = document.querySelectorAll('.main-content > .tabs .tab');
+            const contents = document.querySelectorAll('.main-content > .tab-content');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-viz').classList.add('active');
+
+            if (tabName === 'efficiency') {
+                updateEfficiencyMap();
+            }
+        }
+
+        // Simulation control
+        function startSimulation() {
+            if (!isRunning) {
+                isRunning = true;
+                control.dt = parseFloat(document.getElementById('dt').value) / 1000;
+                control.solver = document.getElementById('solver').value;
+                runSimulation();
+            }
+        }
+
+        function stopSimulation() {
+            isRunning = false;
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        }
+
+        function resetSimulation() {
+            stopSimulation();
+            state = { Ia: 0, If: 0, omega: 0, temp: 25 };
+            history = {
+                t: [], Ia: [], If: [], omega: [], rpm: [],
+                torque: [], power_in: [], power_out: [], efficiency: [],
+                temp: [], copper_loss: [], iron_loss: [], mech_loss: [],
+                stray_loss: [], total_loss: [], sound_level: []
+            };
+            simTime = 0;
+            updatePlots();
+        }
+
+        function runSimulation() {
+            if (!isRunning) return;
+
+            const T_load = control.T_load;
+            const V_supply = params.V_supply;
+
+            const stateArray = [state.Ia, state.If, state.omega, state.temp];
+            let newState;
+
+            if (control.solver === 'euler') {
+                newState = eulerStep(stateArray, control.dt, T_load, V_supply);
+            } else {
+                newState = rk4Step(stateArray, control.dt, T_load, V_supply);
+            }
+
+            state.Ia = newState[0];
+            state.If = newState[1];
+            state.omega = newState[2];
+            state.temp = newState[3];
+
+            updateHistory();
+
+            if (history.t.length % 50 === 0) {
+                updatePlots();
+                updateCurrentStatus();
+            }
+
+            simTime += control.dt;
+
+            animationFrame = requestAnimationFrame(runSimulation);
+        }
+
+        function updateHistory() {
+            const rpm = state.omega * 60 / (2 * PI);
+            const Te = electromagneticTorque(state.Ia, state.If);
+            const P_in = params.V_supply * (state.Ia + state.If);
+            const P_out = Te * state.omega;
+            const eff = P_in > 0 ? (P_out / P_in * 100) : 0;
+
+            const copper = copperLosses(state.Ia, state.If);
+            const iron = ironLosses(state.omega);
+            const mech = mechanicalLosses(state.omega);
+            const stray = strayLosses(state.Ia);
+            const total = copper + iron + mech + stray;
+            const sound = acousticNoise(state.omega, state.Ia);
+
+            history.t.push(simTime);
+            history.Ia.push(state.Ia);
+            history.If.push(state.If);
+            history.omega.push(state.omega);
+            history.rpm.push(rpm);
+            history.torque.push(Te);
+            history.power_in.push(P_in);
+            history.power_out.push(P_out);
+            history.efficiency.push(eff);
+            history.temp.push(state.temp);
+            history.copper_loss.push(copper);
+            history.iron_loss.push(iron);
+            history.mech_loss.push(mech);
+            history.stray_loss.push(stray);
+            history.total_loss.push(total);
+            history.sound_level.push(sound);
+
+            if (history.t.length > 5000) {
+                for (let key in history) {
+                    history[key].shift();
+                }
+            }
+        }
+
+        function updateCurrentStatus() {
+            const rpm = state.omega * 60 / (2 * PI);
+            const Te = electromagneticTorque(state.Ia, state.If);
+            const P_out = Te * state.omega;
+
+            const statusHTML = `
+                <p>Speed: ${rpm.toFixed(1)} RPM</p>
+                <p>Armature Current: ${state.Ia.toFixed(2)} A</p>
+                <p>Field Current: ${state.If.toFixed(3)} A</p>
+                <p>Torque: ${Te.toFixed(2)} N·m</p>
+                <p>Power: ${P_out.toFixed(1)} W</p>
+                <p>Temp: ${state.temp.toFixed(1)}°C</p>
+            `;
+            document.getElementById('current-status').innerHTML = statusHTML;
+        }
+
+        function updatePlots() {
+            updateDynamicPlots();
+            updateLossPlots();
+            updateThermalPlots();
+        }
+
+        function updateDynamicPlots() {
+            Plotly.newPlot('plot-speed', [{
+                x: history.t,
+                y: history.rpm,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#2a5298', width: 2 }
+            }], {
+                title: 'Motor Speed',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Speed (RPM)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+
+            Plotly.newPlot('plot-current', [{
+                x: history.t,
+                y: history.Ia,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Armature',
+                line: { color: '#f5576c', width: 2 }
+            }, {
+                x: history.t,
+                y: history.If,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Field',
+                line: { color: '#4facfe', width: 2 }
+            }], {
+                title: 'Armature & Field Currents',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Current (A)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+
+            Plotly.newPlot('plot-torque', [{
+                x: history.t,
+                y: history.torque,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#764ba2', width: 2 }
+            }], {
+                title: 'Electromagnetic Torque',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Torque (N·m)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+
+            const power_in_kw = history.power_in.map(p => p / 1000);
+            const power_out_kw = history.power_out.map(p => p / 1000);
+
+            Plotly.newPlot('plot-power', [{
+                x: history.t,
+                y: power_in_kw,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Input',
+                line: { color: '#f5576c', width: 2 }
+            }, {
+                x: history.t,
+                y: power_out_kw,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Output',
+                line: { color: '#4facfe', width: 2 }
+            }], {
+                title: 'Power Flow',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Power (kW)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+
+            Plotly.newPlot('plot-efficiency', [{
+                x: history.t,
+                y: history.efficiency,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#fee140', width: 2 }
+            }], {
+                title: 'Motor Efficiency',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Efficiency (%)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+
+            Plotly.newPlot('plot-temp', [{
+                x: history.t,
+                y: history.temp,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#dc143c', width: 2 },
+                name: 'Temperature'
+            }, {
+                x: [history.t[0] || 0, history.t[history.t.length - 1] || 1],
+                y: [params.max_temp, params.max_temp],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Max Temp',
+                line: { color: 'red', width: 2, dash: 'dash' }
+            }], {
+                title: 'Winding Temperature',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Temperature (°C)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+        }
+
+        function updateLossPlots() {
+            Plotly.newPlot('plot-loss-breakdown', [{
+                x: history.t,
+                y: history.copper_loss,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Copper',
+                line: { width: 2 }
+            }, {
+                x: history.t,
+                y: history.iron_loss,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Iron',
+                line: { width: 2 }
+            }, {
+                x: history.t,
+                y: history.mech_loss,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Mechanical',
+                line: { width: 2 }
+            }, {
+                x: history.t,
+                y: history.stray_loss,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Stray',
+                line: { width: 2 }
+            }], {
+                title: 'Loss Breakdown',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Loss (W)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+
+            if (history.copper_loss.length > 0) {
+                const idx = history.copper_loss.length - 1;
+                Plotly.newPlot('plot-loss-pie', [{
+                    values: [
+                        history.copper_loss[idx],
+                        history.iron_loss[idx],
+                        history.mech_loss[idx],
+                        history.stray_loss[idx]
+                    ],
+                    labels: ['Copper', 'Iron', 'Mechanical', 'Stray'],
+                    type: 'pie',
+                    marker: {
+                        colors: ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99']
+                    }
+                }], {
+                    title: 'Current Loss Distribution',
+                    margin: { t: 40, r: 20, b: 20, l: 20 }
+                }, {responsive: true});
+            }
+
+            Plotly.newPlot('plot-total-loss', [{
+                x: history.t,
+                y: history.total_loss,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#f5576c', width: 2 }
+            }], {
+                title: 'Total Losses',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Total Loss (W)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+
+            Plotly.newPlot('plot-eff-vs-load', [{
+                x: history.torque,
+                y: history.efficiency,
+                type: 'scatter',
+                mode: 'markers',
+                marker: {
+                    size: 5,
+                    color: history.t,
+                    colorscale: 'Viridis',
+                    showscale: true,
+                    colorbar: { title: 'Time (s)' }
+                }
+            }], {
+                title: 'Efficiency vs Load',
+                xaxis: { title: 'Torque (N·m)' },
+                yaxis: { title: 'Efficiency (%)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+        }
+
+        function updateThermalPlots() {
+            Plotly.newPlot('plot-thermal-response', [{
+                x: history.t,
+                y: history.temp,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Temperature',
+                line: { color: '#dc143c', width: 2 }
+            }, {
+                x: [history.t[0] || 0, history.t[history.t.length - 1] || 1],
+                y: [params.max_temp, params.max_temp],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Max Temp',
+                line: { color: 'red', width: 2, dash: 'dash' }
+            }, {
+                x: [history.t[0] || 0, history.t[history.t.length - 1] || 1],
+                y: [params.ambient_temp, params.ambient_temp],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Ambient',
+                line: { color: 'blue', width: 2, dash: 'dash' }
+            }], {
+                title: 'Thermal Response',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Temperature (°C)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+
+            Plotly.newPlot('plot-acoustic', [{
+                x: history.t,
+                y: history.sound_level,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Sound Level',
+                line: { color: '#764ba2', width: 2 }
+            }, {
+                x: [history.t[0] || 0, history.t[history.t.length - 1] || 1],
+                y: [85, 85],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Warning (85 dB)',
+                line: { color: 'orange', width: 2, dash: 'dash' }
+            }], {
+                title: 'Acoustic Noise Estimation',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Sound Level (dB)' },
+                margin: { t: 40, r: 20, b: 40, l: 50 }
+            }, {responsive: true});
+        }
+
+        function updateEfficiencyMap() {
+            const torqueRange = [];
+            const speedRange = [];
+            const effGrid = [];
+
+            for (let i = 0; i < 30; i++) {
+                speedRange.push(100 + i * (3000 - 100) / 29);
+            }
+
+            for (let j = 0; j < 30; j++) {
+                torqueRange.push(0.1 + j * (50 - 0.1) / 29);
+            }
+
+            for (let i = 0; i < speedRange.length; i++) {
+                effGrid[i] = [];
+                for (let j = 0; j < torqueRange.length; j++) {
+                    const omega = speedRange[i] * 2 * PI / 60;
+                    const T = torqueRange[j];
+                    const If = params.V_supply / (params.Rf + params.Rf_added);
+                    const flux = magnetizationCurve(If);
+                    const Ia = flux > 0 ? T / flux : 0;
+                    const P_in = params.V_supply * (Ia + If);
+                    const P_out = T * omega;
+                    const eff = P_in > 0 ? Math.min((P_out / P_in * 100), 100) : 0;
+                    effGrid[i][j] = eff;
+                }
+            }
+
+            Plotly.newPlot('plot-efficiency-map', [{
+                x: torqueRange,
+                y: speedRange,
+                z: effGrid,
+                type: 'contour',
+                colorscale: 'RdYlGn',
+                contours: {
+                    coloring: 'heatmap'
+                },
+                colorbar: {
+                    title: 'Efficiency (%)'
+                }
+            }], {
+                title: 'Efficiency Map',
+                xaxis: { title: 'Torque (N·m)' },
+                yaxis: { title: 'Speed (RPM)' },
+                margin: { t: 50, r: 80, b: 50, l: 60 }
+            }, {responsive: true});
+        }
+
+        function solveProblem() {
+            const V = 250;
+            const Ra = 0.25;
+            const Rf = 250;
+            const N1 = 1500;
+            const Ia1 = 20;
+            const Rf_added = 250;
+
+            const If1 = V / Rf;
+            const Eb1 = V - Ia1 * Ra;
+            const Rf_total = Rf + Rf_added;
+            const If2 = V / Rf_total;
+            const flux_ratio = If2 / If1;
+            const Ia2 = Ia1 / flux_ratio;
+            const Eb2 = V - Ia2 * Ra;
+            const N2 = N1 * (Eb2 / Eb1) * (If1 / If2);
+
+            const resultHTML = `
+<h3>DC SHUNT MOTOR PROBLEM SOLUTION</h3>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<strong>GIVEN:</strong>
+  Supply Voltage (V)          = ${V.toFixed(1)} V
+  Armature Resistance (Ra)    = ${Ra.toFixed(2)} Ω
+  Field Resistance (Rf)       = ${Rf.toFixed(1)} Ω
+  Initial Speed (N1)          = ${N1.toFixed(0)} RPM
+  Initial Armature Current    = ${Ia1.toFixed(1)} A
+  Additional Field Resistance = ${Rf_added.toFixed(1)} Ω
+  Load Torque                 = Constant
+  Magnetization Curve         = Linear
+
+<strong>INITIAL CONDITIONS:</strong>
+  Field Current (If1)         = ${If1.toFixed(3)} A
+  Back EMF (Eb1)              = ${Eb1.toFixed(2)} V
+  Flux (Φ1)                   = Φ₁ (reference)
+
+<strong>WITH ADDITIONAL FIELD RESISTANCE:</strong>
+  Total Field Resistance      = ${Rf_total.toFixed(1)} Ω
+  Field Current (If2)         = ${If2.toFixed(3)} A
+  Flux Ratio (Φ2/Φ1)          = ${flux_ratio.toFixed(3)}
+
+  Since Torque is constant:
+  T = Φ₁·Ia₁ = Φ₂·Ia₂
+  Ia₂ = Ia₁·(Φ₁/Φ₂)          = ${Ia2.toFixed(2)} A
+
+  Back EMF (Eb2)              = ${Eb2.toFixed(2)} V
+
+  Speed: N ∝ Eb/Φ
+  N₂ = N₁·(Eb₂/Eb₁)·(Φ₁/Φ₂)   = ${N2.toFixed(2)} RPM
+
+<strong>FINAL ANSWER:</strong>
+  <span style="background: #ffff00; padding: 2px 8px; border-radius: 3px;">
+  New Armature Current (Ia2)  = ${Ia2.toFixed(2)} A
+  New Speed (N2)              = ${N2.toFixed(2)} RPM
+  </span>
+
+<strong>ANALYSIS:</strong>
+  • Field current decreased by ${((1-flux_ratio)*100).toFixed(1)}%
+  • Armature current increased by ${((Ia2/Ia1-1)*100).toFixed(1)}%
+  • Speed increased by ${((N2/N1-1)*100).toFixed(1)}%
+  • Power consumption: ${(V*Ia2).toFixed(1)} W (armature)
+  • Copper losses increased significantly
+  • Risk of overheating due to higher armature current
+
+<strong>RECOMMENDATIONS:</strong>
+  ⚠ Monitor armature temperature closely
+  ⚠ Consider forced cooling if operating continuously
+  ⚠ Verify insulation rating for higher current
+  ⚠ Check commutation and brush wear at higher speed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 800px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            `;
+
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕ Close';
+            closeBtn.className = 'btn btn-danger';
+            closeBtn.style.marginTop = '20px';
+            closeBtn.onclick = () => document.body.removeChild(modal);
+
+            content.innerHTML = resultHTML;
+            content.appendChild(closeBtn);
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+        }
+
+        function calculateEconomics() {
+            if (history.power_in.length === 0) {
+                alert('Run simulation first!');
+                return;
+            }
+
+            const avg_power_kw = history.power_in.reduce((a, b) => a + b, 0) / history.power_in.length / 1000;
+            const hours = parseFloat(document.getElementById('op_hours').value);
+            const cost_per_kwh = parseFloat(document.getElementById('elec_cost').value);
+
+            const energy_kwh = avg_power_kw * hours;
+            const total_cost = energy_kwh * cost_per_kwh;
+
+            const avg_eff = history.efficiency.reduce((a, b) => a + b, 0) / history.efficiency.length;
+            const losses_kwh = energy_kwh * (100 - avg_eff) / 100;
+            const wasted_cost = losses_kwh * cost_per_kwh;
+
+            const co2_kg = energy_kwh * 0.5;
+
+            const improved_eff = 95;
+            const saved_energy = losses_kwh - energy_kwh * (100 - improved_eff) / 100;
+            const saved_cost = wasted_cost - energy_kwh * (100 - improved_eff) / 100 * cost_per_kwh;
+
+            const resultHTML = `
+<h3>ECONOMIC ANALYSIS</h3>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<strong>Operating Conditions:</strong>
+  Average Power:      ${avg_power_kw.toFixed(2)} kW
+  Operating Hours:    ${hours.toFixed(0)} h/year
+  Average Efficiency: ${avg_eff.toFixed(1)} %
+
+<strong>Energy Consumption:</strong>
+  Total Energy:       ${energy_kwh.toFixed(1)} kWh/year
+  Energy in Losses:   ${losses_kwh.toFixed(1)} kWh/year
+
+<strong>Financial Analysis:</strong>
+  Electricity Cost:   $${cost_per_kwh.toFixed(3)}/kWh
+  Total Annual Cost:  $${total_cost.toFixed(2)}
+  Cost from Losses:   $${wasted_cost.toFixed(2)}
+
+<strong>Potential Savings:</strong>
+  If efficiency improved to ${improved_eff}%:
+  Saved Energy:       ${saved_energy.toFixed(1)} kWh
+  Saved Cost:         $${saved_cost.toFixed(2)}
+
+<strong>Environmental Impact:</strong>
+  CO₂ Emissions:      ${co2_kg.toFixed(1)} kg/year
+
+<strong>Recommendations:</strong>
+  • Monitor temperature to prevent derating
+  • Optimize field resistance for efficiency
+  • Consider VFD for variable loads
+  • Schedule maintenance every ${(hours/8760*12).toFixed(0)} months
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+            const resultsDiv = document.getElementById('economic-results');
+            resultsDiv.innerHTML = resultHTML;
+            resultsDiv.style.display = 'block';
+        }
+
+        window.onload = function() {
+            updatePlots();
+            updateEfficiencyMap();
+        };
+
+        window.onresize = function() {
+            Plotly.Plots.resize('plot-speed');
+            Plotly.Plots.resize('plot-current');
+            Plotly.Plots.resize('plot-torque');
+            Plotly.Plots.resize('plot-power');
+            Plotly.Plots.resize('plot-efficiency');
+            Plotly.Plots.resize('plot-temp');
+            Plotly.Plots.resize('plot-efficiency-map');
+        };
+    </script>
+</body>
+</html>
